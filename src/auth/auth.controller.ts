@@ -16,8 +16,6 @@ import { Auth } from "src/auth/decorators/auth.decorator";
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  /* Login, getNewTokens */
-
   @UsePipes(new ValidationPipe())
   @HttpCode(200)
   @Post("login")

@@ -1,10 +1,15 @@
-import { Injectable } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
 import { PrismaService } from "src/prisma.service";
 import { faker } from "@faker-js/faker";
 import { hash } from "argon2";
-import { exclude } from "src/helpers/helpers";
+import { returnUserObject } from "src/user/return-user-object";
+import { Prisma } from "@prisma/client";
 
 @Injectable()
 export class UserService {
@@ -27,19 +32,7 @@ export class UserService {
   async findAll() {
     const users = await this.prisma.user.findMany();
 
-    return users.map((user) => exclude(user, ["password"]));
-  }
-
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
-  }
-
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+    return users;
   }
 
   async getUserByEmail(email: string) {
@@ -52,13 +45,74 @@ export class UserService {
     return user;
   }
 
-  async getUserById(id: number) {
+  async getUserById(id: number, selectObject: Prisma.UserSelect = {}) {
     const user = this.prisma.user.findUnique({
       where: {
         id,
       },
+      select: {
+        ...returnUserObject,
+        favorites: {
+          select: {
+            id: true,
+            name: true,
+            price: true,
+            images: true,
+            slug: true,
+          },
+        },
+        ...selectObject,
+      },
     });
 
+    if (!user) {
+      throw new NotFoundException("user not found");
+    }
+
     return user;
+  }
+
+  async updateProfile(id: number, dto: UpdateUserDto) {
+    const isSameUser = await this.getUserByEmail(dto.email);
+
+    if (isSameUser && id === isSameUser.id) {
+      throw new BadRequestException("Email is already in use!");
+    }
+
+    const user = await this.getUserById(id);
+
+    return this.prisma.user.update({
+      where: {
+        id,
+      },
+      data: {
+        email: dto.email,
+        name: dto.name,
+        avatarPath: dto.avatarPath,
+        phone: dto.phone,
+        password: dto.password ? await hash(dto.password) : user.password,
+      },
+    });
+  }
+
+  async toggleFavorite(id: number, productId: number) {
+    const user = await this.getUserById(id);
+
+    if (!user) throw new NotFoundException("User not found!");
+
+    const isExist = user.favorites.some((product) => product.id === productId);
+
+    await this.prisma.user.update({
+      where: {
+        id,
+      },
+      data: {
+        favorites: {
+          [isExist ? "disconnect" : "connect"]: {
+            id: productId,
+          },
+        },
+      },
+    });
   }
 }
