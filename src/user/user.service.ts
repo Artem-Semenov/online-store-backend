@@ -4,6 +4,7 @@ import { UpdateUserDto } from "./dto/update-user.dto";
 import { PrismaService } from "src/prisma.service";
 import { faker } from "@faker-js/faker";
 import { hash } from "argon2";
+import { exclude } from "src/helpers/helpers";
 
 @Injectable()
 export class UserService {
@@ -23,8 +24,10 @@ export class UserService {
     return user;
   }
 
-  findAll() {
-    return `This action returns all user`;
+  async findAll() {
+    const users = await this.prisma.user.findMany();
+
+    return users.map((user) => exclude(user, ["password"]));
   }
 
   findOne(id: number) {
