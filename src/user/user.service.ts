@@ -118,5 +118,6 @@ export class UserService {
         },
       },
     });
+    return { message: "success" };
   }
 }
