@@ -1,26 +1,45 @@
-import { Injectable } from '@nestjs/common';
-import { CreateStatisticDto } from './dto/create-statistic.dto';
-import { UpdateStatisticDto } from './dto/update-statistic.dto';
+import { Injectable } from "@nestjs/common";
+import { StatiscticsDto } from "./dto/statistics.dto";
+import { PrismaService } from "src/prisma.service";
+import { UserService } from "src/user/user.service";
 
 @Injectable()
 export class StatisticsService {
-  create(createStatisticDto: CreateStatisticDto) {
-    return 'This action adds a new statistic';
-  }
+  constructor(
+    private prisma: PrismaService,
+    private userService: UserService
+  ) {}
 
-  findAll() {
-    return `This action returns all statistics`;
-  }
+  async getMain(userId: number) {
+    const user = await this.userService.getUserById(userId, {
+      orders: {
+        select: {
+          items: true,
+        },
+      },
+      reviews: true,
+    });
 
-  findOne(id: number) {
-    return `This action returns a #${id} statistic`;
-  }
+    //TODO - rewrite to SQL
+    // return user.orders;
 
-  update(id: number, updateStatisticDto: UpdateStatisticDto) {
-    return `This action updates a #${id} statistic`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} statistic`;
+    return [
+      {
+        name: "Orders",
+        value: user.orders.length,
+      },
+      {
+        name: "Reviews",
+        value: user.reviews.length,
+      },
+      {
+        name: "Favoritse",
+        value: user.favorites.length,
+      },
+      {
+        name: "Total amount",
+        value: 1000,
+      },
+    ];
   }
 }

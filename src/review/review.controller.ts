@@ -1,34 +1,45 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
-import { ReviewService } from './review.service';
-import { CreateReviewDto } from './dto/create-review.dto';
-import { UpdateReviewDto } from './dto/update-review.dto';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Delete,
+  ParseFloatPipe,
+  UsePipes,
+  ValidationPipe,
+  HttpCode,
+} from "@nestjs/common";
+import { ReviewService } from "./review.service";
+import { CurrentUser } from "src/auth/decorators/user.decorator";
+import { Auth } from "src/auth/decorators/auth.decorator";
+import { ReviewDto } from "src/review/dto/review.dto";
 
-@Controller('review')
+@Controller("reviews")
 export class ReviewController {
   constructor(private readonly reviewService: ReviewService) {}
 
-  @Post()
-  create(@Body() createReviewDto: CreateReviewDto) {
-    return this.reviewService.create(createReviewDto);
-  }
-
   @Get()
-  findAll() {
-    return this.reviewService.findAll();
+  @UsePipes(new ValidationPipe())
+  async findAll() {
+    return this.reviewService.getAll();
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.reviewService.findOne(+id);
+  @Post(":productId")
+  @UsePipes(new ValidationPipe())
+  @HttpCode(200)
+  @Auth()
+  async create(
+    @Body() createReviewDto: ReviewDto,
+    @CurrentUser("id") userId: number,
+    @Param("productId", ParseFloatPipe) productId: number
+  ) {
+    return this.reviewService.create(userId, createReviewDto, productId);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateReviewDto: UpdateReviewDto) {
-    return this.reviewService.update(+id, updateReviewDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.reviewService.remove(+id);
+  @Delete(":id")
+  @Auth()
+  remove(@Param("id", ParseFloatPipe) id: number) {
+    return this.reviewService.delete(id);
   }
 }

@@ -1,26 +1,68 @@
-import { Injectable } from '@nestjs/common';
-import { CreateReviewDto } from './dto/create-review.dto';
-import { UpdateReviewDto } from './dto/update-review.dto';
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { ReviewDto } from "./dto/review.dto";
+import { PrismaService } from "src/prisma.service";
+import { returnReviewObject } from "src/review/return-review-object copy";
 
 @Injectable()
 export class ReviewService {
-  create(createReviewDto: CreateReviewDto) {
-    return 'This action adds a new review';
+  constructor(private prisma: PrismaService) {}
+
+  async getAll() {
+    return this.prisma.review.findMany({
+      orderBy: {
+        createdAt: "desc",
+      },
+      select: returnReviewObject,
+    });
   }
 
-  findAll() {
-    return `This action returns all review`;
+  async byId(id: number) {
+    const review = await this.prisma.review.findUnique({
+      where: {
+        id,
+      },
+      select: returnReviewObject,
+    });
+
+    if (!review) {
+      throw new NotFoundException("Category not found");
+    }
+
+    return review;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} review`;
+  async create(userId: number, dto: ReviewDto, productId: number) {
+    return this.prisma.review.create({
+      data: {
+        ...dto,
+        product: {
+          connect: {
+            id: productId,
+          },
+        },
+        user: {
+          connect: {
+            id: userId,
+          },
+        },
+      },
+    });
   }
 
-  update(id: number, updateReviewDto: UpdateReviewDto) {
-    return `This action updates a #${id} review`;
+  async getAverageValueByProductId(productId: number) {
+    return this.prisma.review
+      .aggregate({
+        where: { productId },
+        _avg: { rating: true },
+      })
+      .then((data) => data._avg);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} review`;
+  async delete(id: number) {
+    return this.prisma.review.delete({
+      where: {
+        id,
+      },
+    });
   }
 }
