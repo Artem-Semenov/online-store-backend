@@ -20,7 +20,7 @@ const createProducts = async (quantity: number) => {
         price: +faker.commerce.price({ min: 10, max: 1599, dec: 0 }),
         images: Array.from({
           length: faker.number.int({ min: 2, max: 6 }),
-        }).map((el) => faker.image.url()),
+        }).map((el) => faker.image.url({ height: 500, width: 500 })),
         category: {
           create: {
             name: categoryName,
