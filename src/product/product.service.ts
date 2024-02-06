@@ -64,12 +64,14 @@ export class ProductService {
 
     const { perPage, skip } = this.paginationService.getPaginations(dto);
 
-    const products = this.prisma.product.findMany({
+    const products = await this.prisma.product.findMany({
       where: prismaSearchTermFilter,
       orderBy: prismaSort,
       skip,
       take: perPage,
     });
+
+    console.log(products);
 
     return {
       products,
@@ -88,7 +90,7 @@ export class ProductService {
     });
 
     if (!product) {
-      throw new NotFoundException("Category not found");
+      throw new NotFoundException("Product not found");
     }
 
     return product;
@@ -110,6 +112,7 @@ export class ProductService {
   }
 
   async byCategory(categorySlug: string) {
+    console.log(categorySlug);
     const products = await this.prisma.product.findMany({
       where: {
         category: {
@@ -119,7 +122,7 @@ export class ProductService {
       select: productReturnObjectFullset,
     });
 
-    if (!products) {
+    if (!products || !products.length) {
       throw new NotFoundException("Category not found");
     }
 
@@ -128,10 +131,6 @@ export class ProductService {
 
   async getSimilar(id: number) {
     const currentProduct = await this.byId(id);
-
-    if (!currentProduct) {
-      throw new NotFoundException("Current product not found!");
-    }
 
     const products = await this.prisma.product.findMany({
       where: {
@@ -172,14 +171,13 @@ export class ProductService {
       },
       data: {
         description,
-        categoryId,
         images,
         name,
         price,
         slug: generateSlug(name),
         category: {
           connect: {
-            id: categoryId,
+            id: categoryId, // This will connect the product to the category with this id
           },
         },
       },
