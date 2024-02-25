@@ -7,6 +7,7 @@ import {
 import { JwtService } from "@nestjs/jwt";
 import { User } from "@prisma/client";
 import { verify } from "argon2";
+import { Response } from "express";
 import { AuthDto } from "src/auth/dto/auth.dto";
 import { RefresTokenhDto } from "src/auth/dto/refresh-token.dto";
 import { PrismaService } from "src/prisma.service";
@@ -20,6 +21,9 @@ export class AuthService {
     private jwt: JwtService
   ) {}
 
+  private EXPIRES_DAY_REFRESH_TOKEN = 1;
+  REFRESH_TOKEN_NAME = "refreshToken";
+
   async register(dto: AuthDto) {
     const existUser = await this.userService.getUserByEmail(dto.email);
 
@@ -27,22 +31,7 @@ export class AuthService {
 
     const user = await this.userService.create(dto);
 
-    const tokens = await this.issueTokens(user.id);
-
-    return {
-      user: this.returnUserFields(user),
-      ...tokens,
-    };
-  }
-
-  async getNewTokens({ refreshToken }: RefresTokenhDto) {
-    const result = await this.jwt.verifyAsync(refreshToken);
-
-    if (!result) throw new UnauthorizedException("invalid refresh token");
-
-    const user = await this.userService.getUserById(result.id);
-
-    const tokens = await this.issueTokens(user.id);
+    const tokens = this.issueTokens(user.id);
 
     return {
       user: this.returnUserFields(user),
@@ -53,9 +42,24 @@ export class AuthService {
   async login(dto: AuthDto) {
     const user = await this.validateUser(dto);
 
-    const tokens = await this.issueTokens(user.id);
+    const tokens = this.issueTokens(user.id);
     return {
       user: this.returnUserFields(user),
+      ...tokens,
+    };
+  }
+
+  async getNewTokens(refreshToken: string) {
+    const result = await this.jwt.verifyAsync(refreshToken);
+
+    if (!result) throw new UnauthorizedException("invalid refresh token");
+
+    const user = await this.userService.getUserById(result.id);
+
+    const tokens = this.issueTokens(user.id);
+
+    return {
+      user,
       ...tokens,
     };
   }
@@ -65,14 +69,14 @@ export class AuthService {
 
     if (!user) throw new NotFoundException("User not found");
 
-    const isValid = verify(user.password, dto.password);
+    const isValid = await verify(user.password, dto.password);
 
     if (!isValid) throw new UnauthorizedException("Invalid credentials");
 
     return user;
   }
 
-  private async issueTokens(userId: number) {
+  private issueTokens(userId: number) {
     const data = {
       id: userId,
     };
@@ -86,6 +90,28 @@ export class AuthService {
     });
 
     return { accessToken, refreshToken };
+  }
+
+  addRefreshTokenToResponse(res: Response, refreshToken: string) {
+    const expiresIn = new Date();
+    expiresIn.setDate(expiresIn.getDate() + this.EXPIRES_DAY_REFRESH_TOKEN);
+    res.cookie(this.REFRESH_TOKEN_NAME, refreshToken, {
+      httpOnly: true,
+      domain: "localhost",
+      expires: expiresIn,
+      secure: true,
+      sameSite: "none",
+    });
+  }
+
+  removeRefreshTokenFromResponse(res: Response) {
+    res.cookie(this.REFRESH_TOKEN_NAME, "", {
+      httpOnly: true,
+      domain: "localhost",
+      expires: new Date(0),
+      secure: true,
+      sameSite: "none",
+    });
   }
 
   private returnUserFields(user: User) {

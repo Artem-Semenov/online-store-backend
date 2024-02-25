@@ -1,16 +1,18 @@
 import {
   Body,
   Controller,
-  Headers,
   HttpCode,
   Post,
+  Req,
+  Res,
+  UnauthorizedException,
   UsePipes,
   ValidationPipe,
 } from "@nestjs/common";
 import { AuthService } from "./auth.service";
 import { AuthDto } from "src/auth/dto/auth.dto";
-import { RefresTokenhDto } from "src/auth/dto/refresh-token.dto";
 import { Auth } from "src/auth/decorators/auth.decorator";
+import { Request, Response } from "express";
 
 @Controller("auth")
 export class AuthController {
@@ -19,23 +21,55 @@ export class AuthController {
   @UsePipes(new ValidationPipe())
   @HttpCode(200)
   @Post("login")
-  async login(@Body() dto: AuthDto) {
-    return this.authService.login(dto);
-  }
+  async login(@Body() dto: AuthDto, @Res({ passthrough: true }) res: Response) {
+    const { refreshToken, ...response } = await this.authService.login(dto);
+    this.authService.addRefreshTokenToResponse(res, refreshToken);
 
-  @UsePipes(new ValidationPipe())
-  @HttpCode(200)
-  @Auth()
-  @Post("login/access-token")
-  async getNewTokens(@Body() dto: RefresTokenhDto, @Headers() headers) {
-    console.log(headers);
-    return this.authService.getNewTokens(dto);
+    return response;
   }
 
   @UsePipes(new ValidationPipe())
   @HttpCode(200)
   @Post("register")
-  async register(@Body() dto: AuthDto) {
-    return this.authService.register(dto);
+  async register(
+    @Body() dto: AuthDto,
+    @Res({ passthrough: true }) res: Response
+  ) {
+    const { refreshToken, ...response } = await this.authService.register(dto);
+    this.authService.addRefreshTokenToResponse(res, refreshToken);
+    return response;
+  }
+
+  @HttpCode(200)
+  @Post("logout")
+  async logout(@Res({ passthrough: true }) res: Response) {
+    this.authService.removeRefreshTokenFromResponse(res);
+
+    return true;
+  }
+
+  @HttpCode(200)
+  @Post("login/access-token")
+  async getNewTokens(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response
+  ) {
+    console.log("req.cookies", req.cookies);
+
+    const refreshTokenFromCookie =
+      req.cookies[this.authService.REFRESH_TOKEN_NAME];
+
+    if (!refreshTokenFromCookie) {
+      this.authService.removeRefreshTokenFromResponse(res);
+      throw new UnauthorizedException("Refresh token was not provided");
+    }
+
+    const { refreshToken, ...response } = await this.authService.getNewTokens(
+      refreshTokenFromCookie
+    );
+
+    this.authService.addRefreshTokenToResponse(res, refreshToken);
+
+    return response;
   }
 }
