@@ -80,5 +80,3 @@ export function generateSlug(s: string, opt: TOptions = {}) {
 	
 	return opt.lowercase ? s.toLowerCase() : s;
 }
-
-console.log(generateSlug('Щавель морковний і капуста'))

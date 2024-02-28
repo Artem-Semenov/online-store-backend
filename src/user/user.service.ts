@@ -16,6 +16,12 @@ export class UserService {
   constructor(private prisma: PrismaService) {}
 
   async create(createUserDto: CreateUserDto) {
+    const isSameUser = await this.getUserByEmail(createUserDto.email);
+
+    if (isSameUser) {
+      throw new BadRequestException("Email is already in use!");
+    }
+
     const user = await this.prisma.user.create({
       data: {
         email: createUserDto.email,
@@ -77,14 +83,8 @@ export class UserService {
   }
 
   async updateProfile(id: number, dto: UpdateUserDto) {
-    const isSameUser = await this.getUserByEmail(dto.email);
-
-    if (isSameUser && id === isSameUser.id) {
-      throw new BadRequestException("Email is already in use!");
-    }
-
     const user = await this.getUserById(id);
-
+    console.log(dto);
     return this.prisma.user.update({
       where: {
         id,
