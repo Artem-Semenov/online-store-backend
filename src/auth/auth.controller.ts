@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   HttpCode,
+  Param,
   Post,
   Req,
   Res,
@@ -35,9 +36,15 @@ export class AuthController {
     @Body() dto: AuthDto,
     @Res({ passthrough: true }) res: Response
   ) {
-    const { refreshToken, ...response } = await this.authService.register(dto);
-    this.authService.addRefreshTokenToResponse(res, refreshToken);
+    const response = await this.authService.register(dto);
+    // this.authService.addRefreshTokenToResponse(res, refreshToken);
     return response;
+  }
+
+  @HttpCode(200)
+  @Post("activate/:activationLink")
+  async activateAccount(@Param("activationLink") activationLink: string) {
+    return this.authService.activateAccount(activationLink);
   }
 
   @HttpCode(200)
@@ -54,7 +61,6 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response
   ) {
-
     const refreshTokenFromCookie =
       req.cookies[this.authService.REFRESH_TOKEN_NAME];
 

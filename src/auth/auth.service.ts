@@ -10,15 +10,18 @@ import { verify } from "argon2";
 import { Response } from "express";
 import { AuthDto } from "src/auth/dto/auth.dto";
 import { RefresTokenhDto } from "src/auth/dto/refresh-token.dto";
+import { MailService } from "src/mail/mail.service";
 import { PrismaService } from "src/prisma.service";
 import { UserService } from "src/user/user.service";
+import { v4 as uuidv4 } from "uuid";
 
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
     private userService: UserService,
-    private jwt: JwtService
+    private jwt: JwtService,
+    private mailService: MailService
   ) {}
 
   private EXPIRES_DAY_REFRESH_TOKEN = 1;
@@ -29,14 +32,22 @@ export class AuthService {
 
     if (existUser) throw new BadRequestException("User already exist");
 
-    const user = await this.userService.create(dto);
+    const activationLink = uuidv4();
 
-    const tokens = this.issueTokens(user.id);
+    const user = await this.userService.create({ ...dto, activationLink });
+    await this.mailService.sendActivationLink(
+      dto.email,
+      `${process.env.CLIENT_URL}/email-activation/${activationLink}`
+    );
+
+    /* const tokens = this.issueTokens(user.id);
 
     return {
       user: this.returnUserFields(user),
       ...tokens,
-    };
+    }; */
+
+    return "Activation Link was send on your email! Please approve your email!";
   }
 
   async login(dto: AuthDto) {
@@ -64,11 +75,23 @@ export class AuthService {
     };
   }
 
+  async activateAccount(activationLink: string) {
+    const user = await this.userService.getUserByActivationLink(activationLink);
+    if (!user) throw new NotFoundException("Юзера із таким email не знайдено");
+    await this.userService.activateUser(user.id);
+    return true;
+  }
+
   private async validateUser(dto: AuthDto) {
     const user = await this.userService.getUserByEmail(dto.email);
 
     if (!user) throw new NotFoundException("Юзера із таким email не знайдено");
 
+    if (!user.activated) {
+      throw new UnauthorizedException(
+        "Акаунт не було підтверджено, будь ласка перевірте пошту"
+      );
+    }
     const isValid = await verify(user.password, dto.password);
 
     if (!isValid) throw new UnauthorizedException("неправильний пароль");

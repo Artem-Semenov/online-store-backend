@@ -29,6 +29,7 @@ export class UserService {
         avatarPath: faker.image.avatar(),
         phone: faker.phone.number(),
         password: await hash(createUserDto.password),
+        activationLink: createUserDto.activationLink,
       },
     });
 
@@ -82,6 +83,16 @@ export class UserService {
     return user;
   }
 
+  async getUserByActivationLink(activationLink: string) {
+    const user = this.prisma.user.findUnique({
+      where: {
+        activationLink,
+      },
+    });
+
+    return user;
+  }
+
   async updateProfile(id: number, dto: UpdateUserDto) {
     const user = await this.getUserById(id);
     return this.prisma.user.update({
@@ -96,6 +107,19 @@ export class UserService {
         password: dto.password ? await hash(dto.password) : user.password,
       },
     });
+  }
+
+  async activateUser(id: number) {
+    await this.prisma.user.update({
+      where: {
+        id,
+      },
+      data: {
+        activated: true,
+      },
+    });
+
+    return true;
   }
 
   async toggleFavorite(id: number, productId: number) {
