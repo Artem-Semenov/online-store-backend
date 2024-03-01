@@ -25,9 +25,9 @@ export class UserService {
     const user = await this.prisma.user.create({
       data: {
         email: createUserDto.email,
-        name: faker.person.firstName(),
+        name: createUserDto.name || "",
         avatarPath: faker.image.avatar(),
-        phone: faker.phone.number(),
+        phone: createUserDto.phone || "",
         password: await hash(createUserDto.password),
         activationLink: createUserDto.activationLink,
       },

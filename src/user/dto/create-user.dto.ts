@@ -1,4 +1,4 @@
-import { IsEmail, IsString, MinLength } from "class-validator";
+import { IsEmail, IsOptional, IsString, MinLength } from "class-validator";
 
 export class CreateUserDto {
   @IsEmail()
@@ -12,4 +12,15 @@ export class CreateUserDto {
 
   @IsString()
   activationLink: string;
+
+  @IsString()
+  @IsOptional()
+  name: string;
+
+  @IsString()
+  @IsOptional()
+  @MinLength(6, {
+    message: "Phone must be at least 10 characters long",
+  })
+  phone: string;
 }

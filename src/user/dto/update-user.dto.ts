@@ -1,4 +1,4 @@
-import { IsEmail, IsOptional, IsString } from "class-validator";
+import { IsEmail, IsOptional, IsString, MinLength } from "class-validator";
 
 export class UpdateUserDto {
   @IsEmail()
@@ -18,5 +18,8 @@ export class UpdateUserDto {
 
   @IsOptional()
   @IsString()
+  @MinLength(6, {
+    message: "Phone must be at least 10 characters long",
+  })
   phone?: string;
 }

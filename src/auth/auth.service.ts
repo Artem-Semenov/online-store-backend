@@ -40,14 +40,7 @@ export class AuthService {
       `${process.env.API_URL}/api/auth/activate/${activationLink}`
     );
 
-    /* const tokens = this.issueTokens(user.id);
-
-    return {
-      user: this.returnUserFields(user),
-      ...tokens,
-    }; */
-
-    return "Activation Link was send on your email! Please approve your email!";
+    return true;
   }
 
   async login(dto: AuthDto) {

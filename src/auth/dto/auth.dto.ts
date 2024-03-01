@@ -1,4 +1,4 @@
-import { IsEmail, IsString, MinLength, isEmail } from "class-validator";
+import { IsEmail, IsOptional, IsString, MinLength } from "class-validator";
 
 export class AuthDto {
   @IsEmail()
@@ -9,4 +9,15 @@ export class AuthDto {
   })
   @IsString()
   password: string;
+
+  @IsOptional()
+  @IsString()
+  name: string;
+
+  @IsString()
+  @IsOptional()
+  @MinLength(6, {
+    message: "Phone must be at least 10 characters long",
+  })
+  phone: string;
 }
