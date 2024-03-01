@@ -37,7 +37,7 @@ export class AuthService {
     const user = await this.userService.create({ ...dto, activationLink });
     await this.mailService.sendActivationLink(
       dto.email,
-      `${process.env.CLIENT_URL}/email-activation/${activationLink}`
+      `${process.env.API_URL}/api/auth/activate/${activationLink}`
     );
 
     /* const tokens = this.issueTokens(user.id);
@@ -77,7 +77,10 @@ export class AuthService {
 
   async activateAccount(activationLink: string) {
     const user = await this.userService.getUserByActivationLink(activationLink);
-    if (!user) throw new NotFoundException("Юзера із таким email не знайдено");
+    if (!user)
+      throw new NotFoundException(
+        "Сталася якась помилка! Будь ласка зв'яжіться з нами!"
+      );
     await this.userService.activateUser(user.id);
     return true;
   }

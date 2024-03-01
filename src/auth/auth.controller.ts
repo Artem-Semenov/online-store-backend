@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   Param,
   Post,
@@ -42,9 +43,18 @@ export class AuthController {
   }
 
   @HttpCode(200)
-  @Post("activate/:activationLink")
-  async activateAccount(@Param("activationLink") activationLink: string) {
-    return this.authService.activateAccount(activationLink);
+  @Get("activate/:activationLink")
+  async activateAccount(
+    @Res() res: Response,
+    @Param("activationLink") activationLink: string
+  ) {
+    try {
+      await this.authService.activateAccount(activationLink);
+      res.redirect(`${process.env.CLIENT_URL}/login?activated=success`);
+    } catch (error) {
+      console.log(error);
+      res.redirect(`${process.env.CLIENT_URL}/login`);
+    }
   }
 
   @HttpCode(200)

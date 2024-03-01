@@ -34,7 +34,7 @@ const createProducts = async (quantity: number) => {
               text: faker.lorem.paragraph(),
               user: {
                 connect: {
-                  id: 1,
+                  id: 4,
                 },
               },
             },
@@ -43,7 +43,7 @@ const createProducts = async (quantity: number) => {
               text: faker.lorem.paragraph(),
               user: {
                 connect: {
-                  id: 1,
+                  id: 5,
                 },
               },
             },
