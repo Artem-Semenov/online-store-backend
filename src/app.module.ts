@@ -13,6 +13,7 @@ import { StatisticsModule } from "./statistics/statistics.module";
 import { PaginationModule } from "./pagination/pagination.module";
 import { MailModule } from "./mail/mail.module";
 import { MailerModule } from "@nestjs-modules/mailer";
+import { TokenModule } from "./token/token.module";
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { MailerModule } from "@nestjs-modules/mailer";
         },
       },
     }),
+    TokenModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

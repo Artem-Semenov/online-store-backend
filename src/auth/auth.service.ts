@@ -12,6 +12,7 @@ import { AuthDto } from "src/auth/dto/auth.dto";
 import { RefresTokenhDto } from "src/auth/dto/refresh-token.dto";
 import { MailService } from "src/mail/mail.service";
 import { PrismaService } from "src/prisma.service";
+import { TokenService } from "src/token/token.service";
 import { UserService } from "src/user/user.service";
 import { v4 as uuidv4 } from "uuid";
 
@@ -21,11 +22,9 @@ export class AuthService {
     private prisma: PrismaService,
     private userService: UserService,
     private jwt: JwtService,
-    private mailService: MailService
+    private mailService: MailService,
+    private tokenService: TokenService
   ) {}
-
-  private EXPIRES_DAY_REFRESH_TOKEN = 1;
-  REFRESH_TOKEN_NAME = "refreshToken";
 
   async register(dto: AuthDto) {
     const existUser = await this.userService.getUserByEmail(dto.email);
@@ -46,7 +45,7 @@ export class AuthService {
   async login(dto: AuthDto) {
     const user = await this.validateUser(dto);
 
-    const tokens = this.issueTokens(user.id);
+    const tokens = this.tokenService.issueTokens(user.id);
     return {
       user: this.returnUserFields(user),
       ...tokens,
@@ -60,7 +59,7 @@ export class AuthService {
 
     const user = await this.userService.getUserById(result.id);
 
-    const tokens = this.issueTokens(user.id);
+    const tokens = this.tokenService.issueTokens(user.id);
 
     return {
       user,
@@ -74,8 +73,15 @@ export class AuthService {
       throw new NotFoundException(
         "Сталася якась помилка! Будь ласка зв'яжіться з нами!"
       );
+
     await this.userService.activateUser(user.id);
-    return true;
+
+    const tokens = this.tokenService.issueTokens(user.id);
+
+    return {
+      user,
+      ...tokens,
+    };
   }
 
   private async validateUser(dto: AuthDto) {
@@ -95,26 +101,12 @@ export class AuthService {
     return user;
   }
 
-  private issueTokens(userId: number) {
-    const data = {
-      id: userId,
-    };
-
-    const accessToken = this.jwt.sign(data, {
-      expiresIn: "1h",
-    });
-
-    const refreshToken = this.jwt.sign(data, {
-      expiresIn: "7d",
-    });
-
-    return { accessToken, refreshToken };
-  }
-
   addRefreshTokenToResponse(res: Response, refreshToken: string) {
     const expiresIn = new Date();
-    expiresIn.setDate(expiresIn.getDate() + this.EXPIRES_DAY_REFRESH_TOKEN);
-    res.cookie(this.REFRESH_TOKEN_NAME, refreshToken, {
+    expiresIn.setDate(
+      expiresIn.getDate() + this.tokenService.EXPIRES_DAY_REFRESH_TOKEN
+    );
+    res.cookie(this.tokenService.REFRESH_TOKEN_NAME, refreshToken, {
       httpOnly: true,
       domain: "localhost",
       expires: expiresIn,
@@ -124,7 +116,7 @@ export class AuthService {
   }
 
   removeRefreshTokenFromResponse(res: Response) {
-    res.cookie(this.REFRESH_TOKEN_NAME, "", {
+    res.cookie(this.tokenService.REFRESH_TOKEN_NAME, "", {
       httpOnly: true,
       domain: "localhost",
       expires: new Date(0),

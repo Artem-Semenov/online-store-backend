@@ -15,10 +15,14 @@ import { AuthService } from "./auth.service";
 import { AuthDto } from "src/auth/dto/auth.dto";
 import { Auth } from "src/auth/decorators/auth.decorator";
 import { Request, Response } from "express";
+import { TokenService } from "src/token/token.service";
 
 @Controller("auth")
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private tokenService: TokenService
+  ) {}
 
   @UsePipes(new ValidationPipe())
   @HttpCode(200)
@@ -49,7 +53,9 @@ export class AuthController {
     @Param("activationLink") activationLink: string
   ) {
     try {
-      await this.authService.activateAccount(activationLink);
+      const { refreshToken, ...responce } =
+        await this.authService.activateAccount(activationLink);
+      // this.authService.addRefreshTokenToResponse(res, refreshToken);
       res.redirect(`${process.env.CLIENT_URL}/login?activated=success`);
     } catch (error) {
       console.log(error);
@@ -72,7 +78,7 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response
   ) {
     const refreshTokenFromCookie =
-      req.cookies[this.authService.REFRESH_TOKEN_NAME];
+      req.cookies[this.tokenService.REFRESH_TOKEN_NAME];
 
     if (!refreshTokenFromCookie) {
       this.authService.removeRefreshTokenFromResponse(res);
