@@ -12,8 +12,7 @@ import {
   ValidationPipe,
 } from "@nestjs/common";
 import { AuthService } from "./auth.service";
-import { AuthDto } from "src/auth/dto/auth.dto";
-import { Auth } from "src/auth/decorators/auth.decorator";
+import { AuthDto, LoginDto } from "src/auth/dto/auth.dto";
 import { Request, Response } from "express";
 import { TokenService } from "src/token/token.service";
 
@@ -27,7 +26,10 @@ export class AuthController {
   @UsePipes(new ValidationPipe())
   @HttpCode(200)
   @Post("login")
-  async login(@Body() dto: AuthDto, @Res({ passthrough: true }) res: Response) {
+  async login(
+    @Body() dto: LoginDto,
+    @Res({ passthrough: true }) res: Response
+  ) {
     const { refreshToken, ...response } = await this.authService.login(dto);
     this.authService.addRefreshTokenToResponse(res, refreshToken);
 
@@ -79,7 +81,6 @@ export class AuthController {
   ) {
     const refreshTokenFromCookie =
       req.cookies[this.tokenService.REFRESH_TOKEN_NAME];
-
     if (!refreshTokenFromCookie) {
       this.authService.removeRefreshTokenFromResponse(res);
       throw new UnauthorizedException("Refresh token was not provided");

@@ -10,6 +10,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserRole {
+  USER
+  ADMIN
+  MANAGER
+}
+
 model User {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now()) @map("created_at")
@@ -24,6 +30,8 @@ model User {
 
   activated      Boolean @default(false)
   activationLink String  @unique @map("activation_link")
+
+  role UserRole @default(USER)
 
   orders  Order[]
   reviews Review[]

@@ -1,3 +1,4 @@
+import { OmitType, PickType } from "@nestjs/mapped-types";
 import { IsEmail, IsOptional, IsString, MinLength } from "class-validator";
 
 export class AuthDto {
@@ -20,4 +21,9 @@ export class AuthDto {
     message: "Phone must be at least 10 characters long",
   })
   phone: string;
+}
+
+export class LoginDto extends PickType(AuthDto, ["email", "password"]) {
+  email: string;
+  password: string;
 }

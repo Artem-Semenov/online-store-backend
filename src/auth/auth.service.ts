@@ -8,8 +8,7 @@ import { JwtService } from "@nestjs/jwt";
 import { User } from "@prisma/client";
 import { verify } from "argon2";
 import { Response } from "express";
-import { AuthDto } from "src/auth/dto/auth.dto";
-import { RefresTokenhDto } from "src/auth/dto/refresh-token.dto";
+import { AuthDto, LoginDto } from "src/auth/dto/auth.dto";
 import { MailService } from "src/mail/mail.service";
 import { PrismaService } from "src/prisma.service";
 import { TokenService } from "src/token/token.service";
@@ -42,10 +41,10 @@ export class AuthService {
     return true;
   }
 
-  async login(dto: AuthDto) {
+  async login(dto: LoginDto) {
     const user = await this.validateUser(dto);
 
-    const tokens = this.tokenService.issueTokens(user.id);
+    const tokens = this.tokenService.issueTokens(user);
     return {
       user: this.returnUserFields(user),
       ...tokens,
@@ -57,9 +56,9 @@ export class AuthService {
 
     if (!result) throw new UnauthorizedException("invalid refresh token");
 
-    const user = await this.userService.getUserById(result.id);
+    const user = await this.userService.getUserById(result.id, { role: true });
 
-    const tokens = this.tokenService.issueTokens(user.id);
+    const tokens = this.tokenService.issueTokens(user);
 
     return {
       user,
@@ -76,7 +75,7 @@ export class AuthService {
 
     await this.userService.activateUser(user.id);
 
-    const tokens = this.tokenService.issueTokens(user.id);
+    const tokens = this.tokenService.issueTokens(user);
 
     return {
       user,
@@ -84,7 +83,7 @@ export class AuthService {
     };
   }
 
-  private async validateUser(dto: AuthDto) {
+  private async validateUser(dto: LoginDto) {
     const user = await this.userService.getUserByEmail(dto.email);
 
     if (!user) throw new NotFoundException("Юзера із таким email не знайдено");
