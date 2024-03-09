@@ -11,13 +11,14 @@ export class TokenService {
   REFRESH_TOKEN_NAME = "refreshToken";
 
   issueTokens({ id, role }: User): Ttokens {
+    //TODO - rewrite to creating jwe right here.
     const payload = {
       id,
       role,
     };
 
     const accessToken = this.jwt.sign(payload, {
-      expiresIn: "15m",
+      expiresIn: "15s",
     });
 
     const refreshToken = this.jwt.sign(payload, {

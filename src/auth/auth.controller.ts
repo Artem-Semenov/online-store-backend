@@ -14,13 +14,13 @@ import {
 import { AuthService } from "./auth.service";
 import { AuthDto, LoginDto } from "src/auth/dto/auth.dto";
 import { Request, Response } from "express";
-import { TokenService } from "src/token/token.service";
+import { JweService } from "src/jwe/jwe.service";
 
 @Controller("auth")
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
-    private tokenService: TokenService
+    private jweService: JweService
   ) {}
 
   @UsePipes(new ValidationPipe())
@@ -30,10 +30,11 @@ export class AuthController {
     @Body() dto: LoginDto,
     @Res({ passthrough: true }) res: Response
   ) {
-    const { refreshToken, ...response } = await this.authService.login(dto);
-    this.authService.addRefreshTokenToResponse(res, refreshToken);
+    const { jwe, user } = await this.authService.login(dto);
 
-    return response;
+    this.jweService.addJWEToResponse(res, jwe);
+
+    return user;
   }
 
   @UsePipes(new ValidationPipe())
@@ -44,7 +45,6 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response
   ) {
     const response = await this.authService.register(dto);
-    // this.authService.addRefreshTokenToResponse(res, refreshToken);
     return response;
   }
 
@@ -55,9 +55,10 @@ export class AuthController {
     @Param("activationLink") activationLink: string
   ) {
     try {
-      const { refreshToken, ...responce } =
+      const { jwe, user } =
         await this.authService.activateAccount(activationLink);
-      // this.authService.addRefreshTokenToResponse(res, refreshToken);
+      this.jweService.addJWEToResponse(res, jwe);
+
       res.redirect(`${process.env.CLIENT_URL}/login?activated=success`);
     } catch (error) {
       console.log(error);
@@ -68,7 +69,7 @@ export class AuthController {
   @HttpCode(200)
   @Post("logout")
   async logout(@Res({ passthrough: true }) res: Response) {
-    this.authService.removeRefreshTokenFromResponse(res);
+    this.jweService.removeJWEFromResponse(res);
 
     return true;
   }
@@ -79,19 +80,20 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response
   ) {
-    const refreshTokenFromCookie =
-      req.cookies[this.tokenService.REFRESH_TOKEN_NAME];
+    const { refreshToken: refreshTokenFromCookie } =
+      this.jweService.getPayloadFromRequest(req);
+
     if (!refreshTokenFromCookie) {
-      this.authService.removeRefreshTokenFromResponse(res);
-      throw new UnauthorizedException("Refresh token was not provided");
+      this.jweService.removeJWEFromResponse(res);
+      throw new UnauthorizedException("jwe token was not provided");
     }
 
-    const { refreshToken, ...response } = await this.authService.getNewTokens(
+    const { jwe, user } = await this.authService.getNewJweToken(
       refreshTokenFromCookie
     );
 
-    this.authService.addRefreshTokenToResponse(res, refreshToken);
+    this.jweService.addJWEToResponse(res, jwe);
 
-    return response;
+    return user;
   }
 }

@@ -9,6 +9,7 @@ import { JwtStrategy } from "src/auth/jwt.strategy";
 import { UserService } from "src/user/user.service";
 import { MailService } from "src/mail/mail.service";
 import { TokenService } from "src/token/token.service";
+import { JweService } from "src/jwe/jwe.service";
 
 @Module({
   controllers: [AuthController],
@@ -19,6 +20,7 @@ import { TokenService } from "src/token/token.service";
     UserService,
     MailService,
     TokenService,
+    JweService
   ],
   imports: [
     ConfigModule,

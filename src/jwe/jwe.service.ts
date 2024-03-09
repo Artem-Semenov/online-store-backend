@@ -1,34 +1,35 @@
-import { Injectable } from "@nestjs/common";
-import { createCipheriv, createDecipheriv, scryptSync } from "crypto";
-import { Response } from "express";
+import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { Request, Response } from "express";
 import { Ttokens } from "src/token/types/tokens.interface";
+import { AES, enc } from "crypto-js";
 
 @Injectable()
 export class JweService {
   private privateKey = process.env.JWE_ECRYPTION_SECRET;
-  private algorithm = "aes-256-ctr";
-  private iv = Buffer.alloc(16, 0);
-  private key = scryptSync(this.privateKey, "salt", 32);
   JWE_cookie_name = process.env.JWE_COOKIE_NAME;
   JWE_expires_in_days = 7;
 
   constructor() {}
 
   encrypt(payload: Ttokens) {
-    const cipher = createCipheriv(this.algorithm, this.key, this.iv);
-    const jwe =
-      cipher.update(JSON.stringify(payload), "utf8", "hex") +
-      cipher.final("hex");
+    const encrypted = AES.encrypt(
+      JSON.stringify({ payload }),
+      this.privateKey
+    ).toString();
 
-    return jwe;
+    // console.log("encrypted", encrypted);
+
+    return encrypted;
   }
 
   decrypt(jwe: string): Ttokens {
-    const decipher = createDecipheriv(this.algorithm, this.key, this.iv);
-    const decrypted =
-      decipher.update(jwe, "hex", "utf8") + decipher.final("utf8");
+    const decrypted = JSON.parse(
+      AES.decrypt(jwe, this.privateKey).toString(enc.Utf8)
+    ).payload;
 
-    return JSON.parse(decrypted);
+    // console.log("decrypted", decrypted);
+
+    return decrypted;
   }
 
   addJWEToResponse(res: Response, jwe: string) {
@@ -51,5 +52,19 @@ export class JweService {
       secure: true,
       sameSite: "none",
     });
+  }
+
+  getPayloadFromRequest(req: Request): Ttokens {
+    const jwe = req.cookies[this.JWE_cookie_name];
+    if (!jwe) throw new UnauthorizedException("jwe token is missing");
+
+    try {
+      const decrypted = this.decrypt(jwe);
+      const { accessToken, refreshToken } = decrypted;
+      return { accessToken, refreshToken };
+    } catch (error) {
+      console.log(error);
+      throw new UnauthorizedException("token is invalid");
+    }
   }
 }

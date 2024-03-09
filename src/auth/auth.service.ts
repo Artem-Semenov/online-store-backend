@@ -9,6 +9,7 @@ import { User } from "@prisma/client";
 import { verify } from "argon2";
 import { Response } from "express";
 import { AuthDto, LoginDto } from "src/auth/dto/auth.dto";
+import { JweService } from "src/jwe/jwe.service";
 import { MailService } from "src/mail/mail.service";
 import { PrismaService } from "src/prisma.service";
 import { TokenService } from "src/token/token.service";
@@ -22,7 +23,8 @@ export class AuthService {
     private userService: UserService,
     private jwt: JwtService,
     private mailService: MailService,
-    private tokenService: TokenService
+    private tokenService: TokenService,
+    private jweService: JweService
   ) {}
 
   async register(dto: AuthDto) {
@@ -45,13 +47,14 @@ export class AuthService {
     const user = await this.validateUser(dto);
 
     const tokens = this.tokenService.issueTokens(user);
+    const jwe = this.jweService.encrypt(tokens);
     return {
       user: this.returnUserFields(user),
-      ...tokens,
+      jwe,
     };
   }
 
-  async getNewTokens(refreshToken: string) {
+  async getNewJweToken(refreshToken: string) {
     const result = await this.jwt.verifyAsync(refreshToken);
 
     if (!result) throw new UnauthorizedException("invalid refresh token");
@@ -59,10 +62,11 @@ export class AuthService {
     const user = await this.userService.getUserById(result.id, { role: true });
 
     const tokens = this.tokenService.issueTokens(user);
+    const jwe = this.jweService.encrypt(tokens);
 
     return {
-      user,
-      ...tokens,
+      user: this.returnUserFields(user),
+      jwe,
     };
   }
 
@@ -76,10 +80,11 @@ export class AuthService {
     await this.userService.activateUser(user.id);
 
     const tokens = this.tokenService.issueTokens(user);
+    const jwe = this.jweService.encrypt(tokens);
 
     return {
-      user,
-      ...tokens,
+      user: this.returnUserFields(user),
+      jwe,
     };
   }
 
@@ -98,30 +103,6 @@ export class AuthService {
     if (!isValid) throw new UnauthorizedException("неправильний пароль");
 
     return user;
-  }
-
-  addRefreshTokenToResponse(res: Response, refreshToken: string) {
-    const expiresIn = new Date();
-    expiresIn.setDate(
-      expiresIn.getDate() + this.tokenService.EXPIRES_DAY_REFRESH_TOKEN
-    );
-    res.cookie(this.tokenService.REFRESH_TOKEN_NAME, refreshToken, {
-      httpOnly: true,
-      domain: "localhost",
-      expires: expiresIn,
-      secure: true,
-      sameSite: "none",
-    });
-  }
-
-  removeRefreshTokenFromResponse(res: Response) {
-    res.cookie(this.tokenService.REFRESH_TOKEN_NAME, "", {
-      httpOnly: true,
-      domain: "localhost",
-      expires: new Date(0),
-      secure: true,
-      sameSite: "none",
-    });
   }
 
   private returnUserFields(user: User) {
