@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { Prisma, User } from "@prisma/client";
+import { Ttokens } from "src/token/types/tokens.interface";
 
 @Injectable()
 export class TokenService {
@@ -9,7 +10,7 @@ export class TokenService {
   EXPIRES_DAY_REFRESH_TOKEN = 7;
   REFRESH_TOKEN_NAME = "refreshToken";
 
-  issueTokens({ id, role }: User) {
+  issueTokens({ id, role }: User): Ttokens {
     const payload = {
       id,
       role,
