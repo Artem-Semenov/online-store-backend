@@ -10,6 +10,7 @@ import { UserService } from "src/user/user.service";
 import { MailService } from "src/mail/mail.service";
 import { TokenService } from "src/token/token.service";
 import { JweService } from "src/jwe/jwe.service";
+import { GoogleStrategy } from "src/auth/google.strategy";
 
 @Module({
   controllers: [AuthController],
@@ -17,10 +18,11 @@ import { JweService } from "src/jwe/jwe.service";
     AuthService,
     PrismaService,
     JwtStrategy,
+    GoogleStrategy,
     UserService,
     MailService,
     TokenService,
-    JweService
+    JweService,
   ],
   imports: [
     ConfigModule,

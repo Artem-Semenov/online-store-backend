@@ -7,12 +7,12 @@ import {
 import { JwtService } from "@nestjs/jwt";
 import { User } from "@prisma/client";
 import { verify } from "argon2";
-import { Response } from "express";
 import { AuthDto, LoginDto } from "src/auth/dto/auth.dto";
 import { JweService } from "src/jwe/jwe.service";
 import { MailService } from "src/mail/mail.service";
 import { PrismaService } from "src/prisma.service";
 import { TokenService } from "src/token/token.service";
+import { CreateUserDto } from "src/user/dto/create-user.dto";
 import { UserService } from "src/user/user.service";
 import { v4 as uuidv4 } from "uuid";
 
@@ -48,6 +48,38 @@ export class AuthService {
 
     const tokens = this.tokenService.issueTokens(user);
     const jwe = this.jweService.encrypt(tokens);
+    return {
+      user: this.returnUserFields(user),
+      jwe,
+    };
+  }
+
+  async oAuthLogin(userData) {
+    console.log("user", userData);
+    if (!userData) {
+      throw new Error("User not found!!!");
+    }
+
+    let user = await this.userService.getUserByEmail(userData.email);
+
+    if (!user) {
+      const dto: CreateUserDto = {
+        email: userData.email,
+        name: userData.name,
+        password: "",
+        activationLink: "",
+        phone: "",
+      };
+
+      user = await this.userService.create({
+        ...dto,
+        activated: true,
+      });
+    }
+
+    const tokens = this.tokenService.issueTokens(user);
+    const jwe = this.jweService.encrypt(tokens);
+
     return {
       user: this.returnUserFields(user),
       jwe,

@@ -1,4 +1,10 @@
-import { IsEmail, IsOptional, IsString, MinLength } from "class-validator";
+import {
+  IsBoolean,
+  IsEmail,
+  IsOptional,
+  IsString,
+  MinLength,
+} from "class-validator";
 
 export class CreateUserDto {
   @IsEmail()
@@ -23,4 +29,8 @@ export class CreateUserDto {
     message: "Phone must be at least 10 characters long",
   })
   phone: string;
+
+  @IsOptional()
+  @IsBoolean()
+  activated?: boolean;
 }

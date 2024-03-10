@@ -23,7 +23,6 @@ export class MailService {
   };
 
   async sendActivationLink(to: string, link: string) {
-    console.log(this.getActivateEmailHTML(link));
     return this.send({
       to,
       html: this.getActivateEmailHTML(link),

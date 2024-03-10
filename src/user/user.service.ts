@@ -30,6 +30,7 @@ export class UserService {
         phone: createUserDto.phone || "",
         password: await hash(createUserDto.password),
         activationLink: createUserDto.activationLink,
+        activated: createUserDto.activated ?? false,
       },
     });
 

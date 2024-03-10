@@ -8,6 +8,7 @@ import {
   Req,
   Res,
   UnauthorizedException,
+  UseGuards,
   UsePipes,
   ValidationPipe,
 } from "@nestjs/common";
@@ -15,6 +16,7 @@ import { AuthService } from "./auth.service";
 import { AuthDto, LoginDto } from "src/auth/dto/auth.dto";
 import { Request, Response } from "express";
 import { JweService } from "src/jwe/jwe.service";
+import { GoogleAuth } from "src/auth/decorators/auth.decorator";
 
 @Controller("auth")
 export class AuthController {
@@ -22,6 +24,21 @@ export class AuthController {
     private readonly authService: AuthService,
     private jweService: JweService
   ) {}
+
+  @Get("google/callback")
+  @GoogleAuth()
+  async googleAuthCallback(@Req() req, @Res() res: Response) {
+    try {
+      // console.log("req", req);
+      const { jwe, user } = await this.authService.oAuthLogin(req.user);
+      this.jweService.addJWEToResponse(res, jwe);
+
+      res.redirect(`${process.env.CLIENT_URL}/dashboard`);
+    } catch (error) {
+      console.log("error with google login", error);
+      res.redirect(`${process.env.CLIENT_URL}/login`);
+    }
+  }
 
   @UsePipes(new ValidationPipe())
   @HttpCode(200)
