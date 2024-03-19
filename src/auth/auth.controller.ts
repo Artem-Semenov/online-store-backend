@@ -33,7 +33,7 @@ export class AuthController {
       const { jwe, user } = await this.authService.oAuthLogin(req.user);
       this.jweService.addJWEToResponse(res, jwe);
 
-      res.redirect(`${process.env.CLIENT_URL}/dashboard`);
+      res.redirect(`${process.env.CLIENT_URL}/google-callback`);
     } catch (error) {
       console.log("error with google login", error);
       res.redirect(`${process.env.CLIENT_URL}/login`);

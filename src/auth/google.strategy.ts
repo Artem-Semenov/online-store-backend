@@ -14,6 +14,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, "google") {
     });
   }
 
+  //https://stackoverflow.com/questions/62268243/passport-google-oauth2-not-prompting-select-account-when-only-1-google-account-l
   authorizationParams(options: any): any {
     return Object.assign(options, {
       prompt: "select_account",
